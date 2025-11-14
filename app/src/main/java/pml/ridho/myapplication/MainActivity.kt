@@ -179,7 +179,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                                 Button(onClick = { activeUrl = "https://www.tiktok.com" }) {
                                     Text(text = "Tiktok")
                                 }
-                                Button(onClick = { activeUrl = "https://www.whatsapp.com" }) {
+                                Button(onClick = { activeUrl = "https://docs.google.com/forms/d/e/1FAIpQLSdbnuuDlNVdCjSE4HRwW2WgvoGSqBzkCSsM-KiF19Kt14hk-g/viewform" }) {
                                     Text(text = "Send Message")
                                 }
                             }
