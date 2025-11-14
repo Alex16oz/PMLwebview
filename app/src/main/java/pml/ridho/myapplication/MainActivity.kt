@@ -74,28 +74,41 @@ fun MainScreen(modifier: Modifier = Modifier) {
     // State untuk melacak item yang sedang dipilih
     var selectedItemIndex by rememberSaveable { mutableIntStateOf(0) }
 
-    // --- PERUBAHAN DIMULAI DI SINI ---
-
-    // State untuk menyimpan URL WebView yang aktif.
-    // null = tampilkan tombol, non-null = tampilkan WebView
+    // State untuk menyimpan URL WebView yang aktif (HANYA UNTUK TAB HOME).
     var activeUrl by rememberSaveable { mutableStateOf<String?>(null) }
 
+    // --- PERUBAHAN 1: Pisahkan state WebView ---
     // State untuk menyimpan instance WebView (untuk navigasi 'back' internal)
-    var webViewInstance by remember { mutableStateOf<WebView?>(null) }
+    var homeWebView by remember { mutableStateOf<WebView?>(null) }
+    var keranjangWebView by remember { mutableStateOf<WebView?>(null) }
+    // --- AKHIR PERUBAHAN 1 ---
 
-    // Menangani tombol kembali (back button)
+    // --- PERUBAHAN 2: Perbaiki Back Handler ---
+
+    // Menangani tombol kembali (back button) UNTUK TAB HOME
     BackHandler(enabled = selectedItemIndex == 0 && activeUrl != null) {
         // Jika di tab Home dan WebView aktif:
-        if (webViewInstance?.canGoBack() == true) {
+        if (homeWebView?.canGoBack() == true) {
             // 1. Prioritaskan kembali ke halaman sebelumnya di dalam WebView
-            webViewInstance?.goBack()
+            homeWebView?.goBack()
         } else {
             // 2. Jika tidak ada riwayat, tutup WebView (kembali ke tombol)
             activeUrl = null
         }
     }
 
-    // --- PERUBAHAN SELESAI ---
+    // MENANGANI TOMBOL KEMBALI (BACK BUTTON) UNTUK TAB KERANJANG
+    // Aktifkan JIKA tab keranjang sedang dipilih
+    BackHandler(enabled = selectedItemIndex == 2) {
+        if (keranjangWebView?.canGoBack() == true) {
+            // 1. Prioritaskan kembali ke halaman sebelumnya di dalam WebView
+            keranjangWebView?.goBack()
+        } else {
+            // 2. Jika tidak ada riwayat, kembali ke tab Home (indeks 0)
+            selectedItemIndex = 0
+        }
+    }
+    // --- AKHIR PERUBAHAN 2 ---
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -114,14 +127,10 @@ fun MainScreen(modifier: Modifier = Modifier) {
                     NavigationBarItem(
                         selected = selectedItemIndex == index,
                         onClick = {
-                            // --- PERUBAHAN PADA ONCLICK ---
-                            // Jika pengguna mengklik 'Home' saat sudah di 'Home',
-                            // kembalikan ke tampilan tombol (tutup webview)
                             if (selectedItemIndex == 0 && index == 0) {
                                 activeUrl = null
                             }
                             selectedItemIndex = index
-                            // --- AKHIR PERUBAHAN ONCLICK ---
                         },
                         icon = {
                             Icon(
@@ -143,63 +152,87 @@ fun MainScreen(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-            // contentAlignment = Alignment.Center (Dihapus agar WebView mengisi penuh)
         ) {
             // Logika untuk menampilkan konten berdasarkan item yang dipilih
-            if (selectedItemIndex == 0) {
-                // --- KONTEN TAB HOME ---
-
-                if (activeUrl == null) {
-                    // 1. TAMPILKAN TOMBOL JIKA activeUrl null
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+            when (selectedItemIndex) {
+                // --- KONTEN TAB HOME (Indeks 0) ---
+                0 -> {
+                    if (activeUrl == null) {
+                        // 1. TAMPILKAN TOMBOL JIKA activeUrl null
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Button(onClick = { activeUrl = "https://www.youtube.com" }) {
-                                Text(text = "Youtube")
-                            }
-                            Button(onClick = { activeUrl = "https://www.tiktok.com" }) {
-                                Text(text = "Tiktok")
-                            }
-                            Button(onClick = { activeUrl = "https://www.whatsapp.com" }) {
-                                Text(text = "Send Message")
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Button(onClick = { activeUrl = "https://www.youtube.com" }) {
+                                    Text(text = "Youtube")
+                                }
+                                Button(onClick = { activeUrl = "https://www.tiktok.com" }) {
+                                    Text(text = "Tiktok")
+                                }
+                                Button(onClick = { activeUrl = "https://www.whatsapp.com" }) {
+                                    Text(text = "Send Message")
+                                }
                             }
                         }
+                    } else {
+                        // 2. TAMPILKAN WEBVIEW JIKA activeUrl TIDAK null
+                        AndroidView(
+                            modifier = Modifier.fillMaxSize(),
+                            factory = { context ->
+                                WebView(context).apply {
+                                    settings.javaScriptEnabled = true
+                                    webViewClient = WebViewClient()
+                                    loadUrl(activeUrl!!) // Muat URL yang aktif
+                                    homeWebView = this // Simpan instance ke var HOME
+                                }
+                            },
+                            update = { webView ->
+                                if (webView.url != activeUrl) {
+                                    webView.loadUrl(activeUrl!!)
+                                }
+                                homeWebView = webView // Pastikan instance ter-update
+                            }
+                        )
                     }
-                } else {
-                    // 2. TAMPILKAN WEBVIEW JIKA activeUrl TIDAK null
+                } // Akhir dari case 0
+
+                // --- KONTEN TAB KERANJANG (Indeks 2) ---
+                2 -> {
                     AndroidView(
                         modifier = Modifier.fillMaxSize(),
                         factory = { context ->
                             WebView(context).apply {
                                 settings.javaScriptEnabled = true
-                                webViewClient = WebViewClient()
-                                loadUrl(activeUrl!!) // Muat URL yang aktif
-                                webViewInstance = this // Simpan instance
+                                webViewClient = WebViewClient() // Client baru
+                                loadUrl("https://www.jetbrains.com")
+                                keranjangWebView = this // Simpan instance ke var KERANJANG
                             }
                         },
                         update = { webView ->
-                            // Perbarui URL jika state berubah saat view masih ada
-                            webView.loadUrl(activeUrl!!)
+                            if (webView.url != "https://www.jetbrains.com") {
+                                webView.loadUrl("https://www.jetbrains.com")
+                            }
+                            keranjangWebView = webView // Pastikan instance ter-update
                         }
                     )
-                }
+                } // Akhir dari case 2
 
-            } else {
-                // --- KONTEN TAB LAIN ---
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Greeting(
-                        name = items[selectedItemIndex].title
-                    )
+                // --- KONTEN TAB LAIN (Indeks 1, 3, dst.) ---
+                else -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Greeting(
+                            name = items[selectedItemIndex].title
+                        )
+                    }
                 }
-            }
+            } // Akhir dari when
         }
     }
 }
