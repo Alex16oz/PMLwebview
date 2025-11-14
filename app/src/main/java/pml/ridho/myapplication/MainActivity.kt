@@ -214,7 +214,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                                 settings.javaScriptEnabled = true
                                 settings.domStorageEnabled = true // <-- TAMBAHKAN INI
                                 webViewClient = WebViewClient()
-                                loadUrl("https://www.jetbrains.com")
+                                loadUrl("https://shopee.co.id/")
                                 keranjangWebView = this
                             }
                         },
