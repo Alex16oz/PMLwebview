@@ -1,7 +1,10 @@
 package pml.ridho.myapplication
 
 import android.os.Bundle
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +28,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -33,6 +38,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import pml.ridho.myapplication.ui.theme.PMLwebviewTheme
 
 class MainActivity : ComponentActivity() {
@@ -41,7 +47,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PMLwebviewTheme {
-                // Memanggil MainScreen baru kita
                 MainScreen()
             }
         }
@@ -69,6 +74,29 @@ fun MainScreen(modifier: Modifier = Modifier) {
     // State untuk melacak item yang sedang dipilih
     var selectedItemIndex by rememberSaveable { mutableIntStateOf(0) }
 
+    // --- PERUBAHAN DIMULAI DI SINI ---
+
+    // State untuk menyimpan URL WebView yang aktif.
+    // null = tampilkan tombol, non-null = tampilkan WebView
+    var activeUrl by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // State untuk menyimpan instance WebView (untuk navigasi 'back' internal)
+    var webViewInstance by remember { mutableStateOf<WebView?>(null) }
+
+    // Menangani tombol kembali (back button)
+    BackHandler(enabled = selectedItemIndex == 0 && activeUrl != null) {
+        // Jika di tab Home dan WebView aktif:
+        if (webViewInstance?.canGoBack() == true) {
+            // 1. Prioritaskan kembali ke halaman sebelumnya di dalam WebView
+            webViewInstance?.goBack()
+        } else {
+            // 2. Jika tidak ada riwayat, tutup WebView (kembali ke tombol)
+            activeUrl = null
+        }
+    }
+
+    // --- PERUBAHAN SELESAI ---
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -86,8 +114,14 @@ fun MainScreen(modifier: Modifier = Modifier) {
                     NavigationBarItem(
                         selected = selectedItemIndex == index,
                         onClick = {
+                            // --- PERUBAHAN PADA ONCLICK ---
+                            // Jika pengguna mengklik 'Home' saat sudah di 'Home',
+                            // kembalikan ke tampilan tombol (tutup webview)
+                            if (selectedItemIndex == 0 && index == 0) {
+                                activeUrl = null
+                            }
                             selectedItemIndex = index
-                            // Di sini Anda biasanya akan menavigasi ke layar yang berbeda
+                            // --- AKHIR PERUBAHAN ONCLICK ---
                         },
                         icon = {
                             Icon(
@@ -96,8 +130,6 @@ fun MainScreen(modifier: Modifier = Modifier) {
                             )
                         },
                         label = {
-                            // Label hanya akan ditampilkan jika item ini 'selected'
-                            // ini adalah perilaku default M3 untuk 4+ item
                             Text(text = item.title)
                         },
                         alwaysShowLabel = false
@@ -110,31 +142,63 @@ fun MainScreen(modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .padding(innerPadding)
-                .fillMaxSize(),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+            // contentAlignment = Alignment.Center (Dihapus agar WebView mengisi penuh)
         ) {
             // Logika untuk menampilkan konten berdasarkan item yang dipilih
             if (selectedItemIndex == 0) {
-                // Jika "Home" dipilih, tampilkan 3 tombol
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp) // Memberi jarak antar tombol
-                ) {
-                    Button(onClick = { /* TODO: Tambahkan aksi untuk Youtube */ }) {
-                        Text(text = "Youtube")
+                // --- KONTEN TAB HOME ---
+
+                if (activeUrl == null) {
+                    // 1. TAMPILKAN TOMBOL JIKA activeUrl null
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Button(onClick = { activeUrl = "https://www.youtube.com" }) {
+                                Text(text = "Youtube")
+                            }
+                            Button(onClick = { activeUrl = "https://www.tiktok.com" }) {
+                                Text(text = "Tiktok")
+                            }
+                            Button(onClick = { activeUrl = "https://www.whatsapp.com" }) {
+                                Text(text = "Send Message")
+                            }
+                        }
                     }
-                    Button(onClick = { /* TODO: Tambahkan aksi untuk Tiktok */ }) {
-                        Text(text = "Tiktok")
-                    }
-                    Button(onClick = { /* TODO: Tambahkan aksi untuk Send Message */ }) {
-                        Text(text = "Send Message")
-                    }
+                } else {
+                    // 2. TAMPILKAN WEBVIEW JIKA activeUrl TIDAK null
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { context ->
+                            WebView(context).apply {
+                                settings.javaScriptEnabled = true
+                                webViewClient = WebViewClient()
+                                loadUrl(activeUrl!!) // Muat URL yang aktif
+                                webViewInstance = this // Simpan instance
+                            }
+                        },
+                        update = { webView ->
+                            // Perbarui URL jika state berubah saat view masih ada
+                            webView.loadUrl(activeUrl!!)
+                        }
+                    )
                 }
+
             } else {
-                // Jika halaman lain dipilih, tampilkan Greeting
-                Greeting(
-                    name = items[selectedItemIndex].title
-                )
+                // --- KONTEN TAB LAIN ---
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Greeting(
+                        name = items[selectedItemIndex].title
+                    )
+                }
             }
         }
     }
@@ -152,7 +216,6 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @Composable
 fun GreetingPreview() {
     PMLwebviewTheme {
-        // Mengubah preview agar menampilkan MainScreen
         MainScreen()
     }
 }
