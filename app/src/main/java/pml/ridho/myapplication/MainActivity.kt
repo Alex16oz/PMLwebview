@@ -77,38 +77,37 @@ fun MainScreen(modifier: Modifier = Modifier) {
     // State untuk menyimpan URL WebView yang aktif (HANYA UNTUK TAB HOME).
     var activeUrl by rememberSaveable { mutableStateOf<String?>(null) }
 
-    // --- PERUBAHAN 1: Pisahkan state WebView ---
-    // State untuk menyimpan instance WebView (untuk navigasi 'back' internal)
+    // State untuk instance WebView
     var homeWebView by remember { mutableStateOf<WebView?>(null) }
     var keranjangWebView by remember { mutableStateOf<WebView?>(null) }
-    // --- AKHIR PERUBAHAN 1 ---
-
-    // --- PERUBAHAN 2: Perbaiki Back Handler ---
+    var profileWebView by remember { mutableStateOf<WebView?>(null) }
 
     // Menangani tombol kembali (back button) UNTUK TAB HOME
     BackHandler(enabled = selectedItemIndex == 0 && activeUrl != null) {
-        // Jika di tab Home dan WebView aktif:
         if (homeWebView?.canGoBack() == true) {
-            // 1. Prioritaskan kembali ke halaman sebelumnya di dalam WebView
             homeWebView?.goBack()
         } else {
-            // 2. Jika tidak ada riwayat, tutup WebView (kembali ke tombol)
             activeUrl = null
         }
     }
 
     // MENANGANI TOMBOL KEMBALI (BACK BUTTON) UNTUK TAB KERANJANG
-    // Aktifkan JIKA tab keranjang sedang dipilih
     BackHandler(enabled = selectedItemIndex == 2) {
         if (keranjangWebView?.canGoBack() == true) {
-            // 1. Prioritaskan kembali ke halaman sebelumnya di dalam WebView
             keranjangWebView?.goBack()
         } else {
-            // 2. Jika tidak ada riwayat, kembali ke tab Home (indeks 0)
-            selectedItemIndex = 0
+            selectedItemIndex = 0 // Kembali ke Home
         }
     }
-    // --- AKHIR PERUBAHAN 2 ---
+
+    // MENANGANI TOMBOL KEMBALI (BACK BUTTON) UNTUK TAB PROFILE
+    BackHandler(enabled = selectedItemIndex == 3) {
+        if (profileWebView?.canGoBack() == true) {
+            profileWebView?.goBack()
+        } else {
+            selectedItemIndex = 0 // Kembali ke Home
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -158,7 +157,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                 // --- KONTEN TAB HOME (Indeks 0) ---
                 0 -> {
                     if (activeUrl == null) {
-                        // 1. TAMPILKAN TOMBOL JIKA activeUrl null
+                        // 1. TAMPILKAN TOMBOL
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -179,22 +178,23 @@ fun MainScreen(modifier: Modifier = Modifier) {
                             }
                         }
                     } else {
-                        // 2. TAMPILKAN WEBVIEW JIKA activeUrl TIDAK null
+                        // 2. TAMPILKAN WEBVIEW
                         AndroidView(
                             modifier = Modifier.fillMaxSize(),
                             factory = { context ->
                                 WebView(context).apply {
                                     settings.javaScriptEnabled = true
+                                    settings.domStorageEnabled = true // <-- TAMBAHKAN INI
                                     webViewClient = WebViewClient()
-                                    loadUrl(activeUrl!!) // Muat URL yang aktif
-                                    homeWebView = this // Simpan instance ke var HOME
+                                    loadUrl(activeUrl!!)
+                                    homeWebView = this
                                 }
                             },
                             update = { webView ->
                                 if (webView.url != activeUrl) {
                                     webView.loadUrl(activeUrl!!)
                                 }
-                                homeWebView = webView // Pastikan instance ter-update
+                                homeWebView = webView
                             }
                         )
                     }
@@ -207,21 +207,45 @@ fun MainScreen(modifier: Modifier = Modifier) {
                         factory = { context ->
                             WebView(context).apply {
                                 settings.javaScriptEnabled = true
-                                webViewClient = WebViewClient() // Client baru
+                                settings.domStorageEnabled = true // <-- TAMBAHKAN INI
+                                webViewClient = WebViewClient()
                                 loadUrl("https://www.jetbrains.com")
-                                keranjangWebView = this // Simpan instance ke var KERANJANG
+                                keranjangWebView = this
                             }
                         },
                         update = { webView ->
                             if (webView.url != "https://www.jetbrains.com") {
                                 webView.loadUrl("https://www.jetbrains.com")
                             }
-                            keranjangWebView = webView // Pastikan instance ter-update
+                            keranjangWebView = webView
                         }
                     )
                 } // Akhir dari case 2
 
-                // --- KONTEN TAB LAIN (Indeks 1, 3, dst.) ---
+                // --- KONTEN TAB PROFILE (Indeks 3) ---
+                3 -> {
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory = { context ->
+                            WebView(context).apply {
+                                settings.javaScriptEnabled = true
+                                settings.domStorageEnabled = true // <-- TAMBAHKAN INI
+                                webViewClient = WebViewClient()
+                                loadUrl("https://myaccount.google.com/")
+                                profileWebView = this // Simpan instance
+                            }
+                        },
+                        update = { webView ->
+                            val targetUrl = "https://myaccount.google.com/"
+                            if (webView.url != targetUrl) {
+                                webView.loadUrl(targetUrl)
+                            }
+                            profileWebView = webView // Pastikan instance ter-update
+                        }
+                    )
+                } // Akhir dari case 3
+
+                // --- KONTEN TAB LAIN (Sekarang hanya Indeks 1 / Lokasi) ---
                 else -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
