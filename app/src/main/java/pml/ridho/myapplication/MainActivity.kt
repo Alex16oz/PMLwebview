@@ -4,7 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -12,6 +14,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -29,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import pml.ridho.myapplication.ui.theme.PMLwebviewTheme
 
 class MainActivity : ComponentActivity() {
@@ -103,16 +107,35 @@ fun MainScreen(modifier: Modifier = Modifier) {
         }
     ) { innerPadding ->
         // Konten utama layar
-        // Kita letakkan di tengah dan tunjukkan halaman mana yang aktif
         Box(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Greeting(
-                name = items[selectedItemIndex].title
-            )
+            // Logika untuk menampilkan konten berdasarkan item yang dipilih
+            if (selectedItemIndex == 0) {
+                // Jika "Home" dipilih, tampilkan 3 tombol
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp) // Memberi jarak antar tombol
+                ) {
+                    Button(onClick = { /* TODO: Tambahkan aksi untuk Youtube */ }) {
+                        Text(text = "Youtube")
+                    }
+                    Button(onClick = { /* TODO: Tambahkan aksi untuk Tiktok */ }) {
+                        Text(text = "Tiktok")
+                    }
+                    Button(onClick = { /* TODO: Tambahkan aksi untuk Send Message */ }) {
+                        Text(text = "Send Message")
+                    }
+                }
+            } else {
+                // Jika halaman lain dipilih, tampilkan Greeting
+                Greeting(
+                    name = items[selectedItemIndex].title
+                )
+            }
         }
     }
 }
