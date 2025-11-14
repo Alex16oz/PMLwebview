@@ -88,6 +88,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
             homeWebView?.goBack()
         } else {
             activeUrl = null
+            homeWebView = null // <-- PERBAIKAN: Bersihkan referensi saat WebView ditutup
         }
     }
 
@@ -97,6 +98,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
             keranjangWebView?.goBack()
         } else {
             selectedItemIndex = 0 // Kembali ke Home
+            keranjangWebView = null // <-- PERBAIKAN: Bersihkan referensi saat pindah tab
         }
     }
 
@@ -106,6 +108,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
             profileWebView?.goBack()
         } else {
             selectedItemIndex = 0 // Kembali ke Home
+            profileWebView = null // <-- PERBAIKAN: Bersihkan referensi saat pindah tab
         }
     }
 
@@ -127,7 +130,11 @@ fun MainScreen(modifier: Modifier = Modifier) {
                         selected = selectedItemIndex == index,
                         onClick = {
                             if (selectedItemIndex == 0 && index == 0) {
-                                activeUrl = null
+                                // Jika di tab Home dan menekan Home lagi
+                                if (activeUrl != null) {
+                                    activeUrl = null
+                                    homeWebView = null // Pastikan referensi bersih
+                                }
                             }
                             selectedItemIndex = index
                         },
@@ -191,10 +198,8 @@ fun MainScreen(modifier: Modifier = Modifier) {
                                 }
                             },
                             update = { webView ->
-                                if (webView.url != activeUrl) {
-                                    webView.loadUrl(activeUrl!!)
-                                }
-                                homeWebView = webView
+                                // <-- PERBAIKAN: Logika 'if' dihapus untuk mencegah reload
+                                homeWebView = webView // Jaga agar referensi tetap update
                             }
                         )
                     }
@@ -214,9 +219,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                             }
                         },
                         update = { webView ->
-                            if (webView.url != "https://www.jetbrains.com") {
-                                webView.loadUrl("https://www.jetbrains.com")
-                            }
+                            // <-- PERBAIKAN: Logika 'if' dihapus untuk mencegah reload
                             keranjangWebView = webView
                         }
                     )
@@ -236,10 +239,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
                             }
                         },
                         update = { webView ->
-                            val targetUrl = "https://myaccount.google.com/"
-                            if (webView.url != targetUrl) {
-                                webView.loadUrl(targetUrl)
-                            }
+                            // <-- PERBAIKAN: Logika 'if' dihapus untuk mencegah reload
                             profileWebView = webView // Pastikan instance ter-update
                         }
                     )
