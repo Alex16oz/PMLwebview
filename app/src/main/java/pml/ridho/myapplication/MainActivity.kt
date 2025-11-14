@@ -95,7 +95,8 @@ fun MainScreen(modifier: Modifier = Modifier) {
                             // Label hanya akan ditampilkan jika item ini 'selected'
                             // ini adalah perilaku default M3 untuk 4+ item
                             Text(text = item.title)
-                        }
+                        },
+                        alwaysShowLabel = false
                     )
                 }
             }
